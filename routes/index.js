@@ -5,7 +5,7 @@ const { Octokit } = require('@octokit/rest')
 
 // todo: deleted branches?
 // todo: end date...
-// todo: authors
+// todo: committers?
 router.get('/graph-branch/all', async function (req, res, next) {
     // Octokit.js
     // https://github.com/octokit/core.js#readme
@@ -25,6 +25,7 @@ router.get('/graph-branch/all', async function (req, res, next) {
             'name': result.data[i].name,
             'endDate': new Date(lastCommit.data.commit.commit.committer.date),
             'startDate': new Date(firstCommit.data.commit.committer.date),
+            'committer': lastCommit.data.commit.commit.committer.name,
         });
     }
 
@@ -93,6 +94,41 @@ async function getFirstCommit(octokit, owner, repo, branch) {
     }
 }
 
+async function getAllBranches(octokit, req) {
+    // List branches (https://docs.github.com/en/rest/branches/branches?apiVersion=2022-11-28#list-branches)
+    return await octokit.request('GET /repos/{owner}/{repo}/branches', {
+        owner: req.query.owner,
+        repo: req.query.repo,
+        headers: {
+            'X-GitHub-Api-Version': '2022-11-28'
+        }
+    });
+}
+
+async function getBranchLastCommit(octokit, owner, repo, branch) {
+    // Get a commit (https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28#get-a-commit)
+    return await octokit.request('GET /repos/{owner}/{repo}/branches/{branch}', {
+        owner: owner,
+        repo: repo,
+        branch: branch,
+        headers: {
+            'X-GitHub-Api-Version': '2022-11-28'
+        }
+    });
+}
+
+async function getACommit(octokit, owner, repo, sha) {
+    // Get a branch (https://docs.github.com/en/rest/branches/branches?apiVersion=2022-11-28#get-a-branch)
+    return await octokit.request('GET /repos/{owner}/{repo}/commits/{ref}', {
+        owner: owner,
+        repo: repo,
+        ref: sha,
+        headers: {
+            'X-GitHub-Api-Version': '2022-11-28'
+        }
+    });
+}
+
 router.get('/branch', async function (req, res, next) {
     // Octokit.js
     // https://github.com/octokit/core.js#readme
@@ -147,41 +183,6 @@ router.get('/commit', async function (req, res, next) {
     });
     res.send(result.data);
 });
-
-async function getAllBranches(octokit, req) {
-    // List branches (https://docs.github.com/en/rest/branches/branches?apiVersion=2022-11-28#list-branches)
-    return await octokit.request('GET /repos/{owner}/{repo}/branches', {
-        owner: req.query.owner,
-        repo: req.query.repo,
-        headers: {
-            'X-GitHub-Api-Version': '2022-11-28'
-        }
-    });
-}
-
-async function getBranchLastCommit(octokit, owner, repo, branch) {
-    // Get a commit (https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28#get-a-commit)
-    return await octokit.request('GET /repos/{owner}/{repo}/branches/{branch}', {
-        owner: owner,
-        repo: repo,
-        branch: branch,
-        headers: {
-            'X-GitHub-Api-Version': '2022-11-28'
-        }
-    });
-}
-
-async function getACommit(octokit, owner, repo, sha) {
-    // Get a branch (https://docs.github.com/en/rest/branches/branches?apiVersion=2022-11-28#get-a-branch)
-    return await octokit.request('GET /repos/{owner}/{repo}/commits/{ref}', {
-        owner: owner,
-        repo: repo,
-        ref: sha,
-        headers: {
-            'X-GitHub-Api-Version': '2022-11-28'
-        }
-    });
-}
 
 // // Compare two commits (https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28#compare-two-commits)
 // router.get('/commit/compare', async function (req, res, next) {
