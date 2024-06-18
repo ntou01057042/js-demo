@@ -70,7 +70,7 @@ async function getFirstCommit(octokit, owner, repo, branch) {
         if (branchCommitSHA) {
             result = await getACommit(octokit, owner, repo, branchCommitSHA);
             if (result.data.parents[0]) {
-                const lastBranchCommitSHA = branchCommitSHA;
+                // const lastBranchCommitSHA = branchCommitSHA;
                 branchCommitSHA = result.data.parents[0].sha;
                 console.log('branchCommitSHA: ' + branchCommitSHA);
                 if (!branchCommitSHA) {
@@ -78,8 +78,8 @@ async function getFirstCommit(octokit, owner, repo, branch) {
                     break;
                 }
                 if (commitSet.has(branchCommitSHA)) {
-                    // return branchCommitSHA;
-                    return lastBranchCommitSHA;
+                    return branchCommitSHA;
+                    // return lastBranchCommitSHA;
                 } else {
                     commitSet.add(branchCommitSHA);
                 }
@@ -93,7 +93,7 @@ async function getFirstCommit(octokit, owner, repo, branch) {
         if (baseCommitSHA) {
             result = await getACommit(octokit, owner, repo, baseCommitSHA);
             if (result.data.parents[0]) {
-                const lastBaseCommitSHA = baseCommitSHA;
+                // const lastBaseCommitSHA = baseCommitSHA;
                 baseCommitSHA = result.data.parents[0].sha;
                 console.log('baseCommitSHA: ' + baseCommitSHA);
                 if (!baseCommitSHA) {
@@ -101,8 +101,8 @@ async function getFirstCommit(octokit, owner, repo, branch) {
                     break;
                 }
                 if (commitSet.has(baseCommitSHA)) {
-                    // return baseCommitSHA;
-                    return lastBaseCommitSHA;
+                    return baseCommitSHA;
+                    // return lastBaseCommitSHA;
                 } else {
                     commitSet.add(baseCommitSHA);
                 }
