@@ -3,6 +3,21 @@ const router = express.Router();
 
 const { Octokit } = require('@octokit/rest')
 
+router.get('/test', async function (req, res, next) {
+    // Octokit.js
+    // https://github.com/octokit/core.js#readme
+    const octokit = new Octokit({
+        // auth: req.query.token
+    });
+
+    // const lastCommit = await getBranchLastCommit(octokit, req.query.owner, req.query.repo, 'test');
+    // console.log(lastCommit.data);
+    const firstCommitSHA = await getFirstCommit(octokit, req.query.owner, req.query.repo, 'master');
+    const firstCommit = await getACommit(octokit, req.query.owner, req.query.repo, firstCommitSHA);
+    console.log(firstCommit.data);
+    res.send(firstCommit.data);
+});
+
 // todo: deleted branches?
 // todo: end date...
 // todo: committers?
@@ -18,6 +33,9 @@ router.get('/graph-branch/all', async function (req, res, next) {
     // console.log(result.data);
     for (const i in result.data) {
         // console.log(result.data[i])
+        if (result.data[i].name === 'master' || result.data[i].name === 'main') {
+            continue;
+        }
         const lastCommit = await getBranchLastCommit(octokit, req.query.owner, req.query.repo, result.data[i].name);
         const firstCommitSHA = await getFirstCommit(octokit, req.query.owner, req.query.repo, result.data[i].name);
         const firstCommit = await getACommit(octokit, req.query.owner, req.query.repo, firstCommitSHA);
@@ -37,55 +55,59 @@ router.get('/graph-branch/all', async function (req, res, next) {
 // todo: optimize complexity
 async function getFirstCommit(octokit, owner, repo, branch) {
     let result = await getBranchLastCommit(octokit, owner, repo, branch);
-    let branchCommit = result.data.commit.sha;
-    console.log('branchCommit: ' + branchCommit);
+    let branchCommitSHA = result.data.commit.sha;
+    console.log('branchCommitSHA: ' + branchCommitSHA);
 
     result = await getBranchLastCommit(octokit, owner, repo, 'master');
-    let baseCommit = result.data.commit.sha;
-    console.log('baseCommit: ' + baseCommit);
+    let baseCommitSHA = result.data.commit.sha;
+    console.log('baseCommitSHA: ' + baseCommitSHA);
     console.log();
 
-    const commitSet = new Set([branchCommit, baseCommit]);
+    const commitSet = new Set([branchCommitSHA, baseCommitSHA]);
     let temp = 2;
     while (temp > 0) {
         // Find parent of current branch commit
-        if (branchCommit) {
-            result = await getACommit(octokit, owner, repo, branchCommit);
-            branchCommit = result.data.parents[0];
-            if (branchCommit) {
-                branchCommit = result.data.parents[0].sha;
-                console.log('branchCommit: ' + branchCommit);
-                if (!branchCommit) {
+        if (branchCommitSHA) {
+            result = await getACommit(octokit, owner, repo, branchCommitSHA);
+            if (result.data.parents[0]) {
+                const lastBranchCommitSHA = branchCommitSHA;
+                branchCommitSHA = result.data.parents[0].sha;
+                console.log('branchCommitSHA: ' + branchCommitSHA);
+                if (!branchCommitSHA) {
                     console.log('Start of a branch not found!')
                     break;
                 }
-                if (commitSet.has(branchCommit)) {
-                    return branchCommit;
+                if (commitSet.has(branchCommitSHA)) {
+                    // return branchCommitSHA;
+                    return lastBranchCommitSHA;
                 } else {
-                    commitSet.add(branchCommit);
+                    commitSet.add(branchCommitSHA);
                 }
             } else {
+                branchCommitSHA = result.data.parents[0];   //
                 temp--;
             }
         }
 
         // Find parent of base branch
-        if (baseCommit) {
-            result = await getACommit(octokit, owner, repo, baseCommit);
-            baseCommit = result.data.parents[0];
-            if (baseCommit) {
-                baseCommit = result.data.parents[0].sha;
-                console.log('baseCommit: ' + baseCommit);
-                if (!baseCommit) {
+        if (baseCommitSHA) {
+            result = await getACommit(octokit, owner, repo, baseCommitSHA);
+            if (result.data.parents[0]) {
+                const lastBaseCommitSHA = baseCommitSHA;
+                baseCommitSHA = result.data.parents[0].sha;
+                console.log('baseCommitSHA: ' + baseCommitSHA);
+                if (!baseCommitSHA) {
                     console.log('Start of a branch not found!')
                     break;
                 }
-                if (commitSet.has(baseCommit)) {
-                    return baseCommit;
+                if (commitSet.has(baseCommitSHA)) {
+                    // return baseCommitSHA;
+                    return lastBaseCommitSHA;
                 } else {
-                    commitSet.add(baseCommit);
+                    commitSet.add(baseCommitSHA);
                 }
             } else {
+                baseCommitSHA = result.data.parents[0];   //
                 temp--;
             }
         }
